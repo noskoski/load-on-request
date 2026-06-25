@@ -1,0 +1,37 @@
+version: "3.8"
+
+# Alvo CONFIGURAVEL: gera CPU / memoria / IO / latencia conforme a requisicao.
+# Build e push da imagem antes (veja Dockerfile). Ex.:
+#   docker build -t SEU_REGISTRY/load-on-request:latest ./load-on-request
+#   docker push SEU_REGISTRY/load-on-request:latest
+#
+# Testes:
+#   curl "https://load.exemplo.com/cpu?cpus=4&seconds=15"
+#   curl "https://load.exemplo.com/mem?bytes=512M&seconds=10"
+#   curl "https://load.exemplo.com/io?workers=4&seconds=10"
+#   curl "https://load.exemplo.com/slow?ms=3000"
+
+services:
+  loadgen:
+    image: SEU_REGISTRY/load-on-request:latest
+    environment:
+      PORT: "8080"
+    networks:
+      - traefik-net
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "1.0"       # teto de CPU pra carga ficar contida no no
+          memory: 768M      # precisa ser > maior /mem?bytes que voce vai pedir
+    # OBS: se seu Traefik usa o provider SWARM, mova estas labels para deploy.labels
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.loadgen.rule=Host(`load.exemplo.com`)
+      - traefik.http.routers.loadgen.entrypoints=websecure
+      - traefik.http.routers.loadgen.tls.certresolver=letsencrypt
+      - traefik.http.services.loadgen.loadbalancer.server.port=8080
+
+networks:
+  traefik-net:
+    external: true          # ajuste para o nome da rede onde seu Traefik vive

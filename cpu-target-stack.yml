@@ -1,0 +1,31 @@
+version: "3.8"
+
+# Alvo que consome CPU a CADA requisicao recebida (nao no startup).
+# Imagem oficial do exemplo de HPA do Kubernetes: o index.php roda um loop
+# pesado de sqrt() a cada GET / -> basta bater na URL pra gerar carga.
+#
+# Teste:  curl https://cpu.exemplo.com/      (cada hit queima CPU)
+#         while true; do curl -s https://cpu.exemplo.com/ >/dev/null; done
+
+services:
+  cpu-target:
+    image: registry.k8s.io/hpa-example
+    networks:
+      - traefik-net
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "0.50"      # teto pra carga ficar observavel e nao saturar o no
+          memory: 128M
+    # OBS: se seu Traefik usa o provider SWARM, mova estas labels para deploy.labels
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.cpu-target.rule=Host(`cpu.exemplo.com`)
+      - traefik.http.routers.cpu-target.entrypoints=websecure
+      - traefik.http.routers.cpu-target.tls.certresolver=letsencrypt
+      - traefik.http.services.cpu-target.loadbalancer.server.port=80
+
+networks:
+  traefik-net:
+    external: true        # ajuste para o nome da rede onde seu Traefik vive
