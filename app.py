@@ -77,7 +77,7 @@ class Handler(BaseHTTPRequestHandler):
         t0 = time.time()
         try:
             subprocess.run(
-                ["stress-ng", *args],
+                ["stress-ng", "--temp-path", "/tmp", *args],
                 check=True,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.PIPE,
